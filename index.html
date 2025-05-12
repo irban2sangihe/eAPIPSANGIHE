@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Pengawasan Inspektorat</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; }
+    h1 { text-align: center; color: #2c3e50; }
+    form, .files { max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 10px; }
+    input, select, button { width: 100%; padding: 10px; margin: 10px 0; }
+    .file-item { padding: 10px; border-bottom: 1px solid #ddd; }
+    .file-item a { text-decoration: none; color: #2980b9; }
+    .delete-btn { color: red; cursor: pointer; float: right; }
+  </style>
+</head>
+<body>
+  <h1>E-Pengawasan Inspektorat</h1>
+  <form id="uploadForm">
+    <input type="file" name="file" required />
+    <select name="kategori" required>
+      <option value="">Pilih Kategori</option>
+      <option value="Audit">Audit</option>
+      <option value="Reviu">Reviu</option>
+      <option value="Evaluasi">Evaluasi</option>
+      <option value="Lainnya">Lainnya</option>
+    </select>
+    <input type="text" name="tahun" placeholder="Tahun (misal 2025)" required />
+    <button type="submit">Upload Dokumen</button>
+  </form>
+  <div class="files" id="fileList"><strong>Loading files...</strong></div>
+
+  <script>
+    const webAppURL = "https://script.google.com/macros/s/AKfycbwJedYrfeiGik9T0hPS97rlExMaqGnPbag9unVYxSr34fPiK_sJvN9qyWNpb8You6w1/exec"; // Ganti dengan URL Web App Script kamu
+
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const file = form.file.files[0];
+      const kategori = form.kategori.value;
+      const tahun = form.tahun.value;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kategori", kategori);
+      formData.append("tahun", tahun);
+
+      const res = await fetch(webAppURL, {
+        method: "POST",
+        body: formData
+      });
+
+      alert(await res.text());
+      form.reset();
+      loadFiles();
+    });
+
+    async function loadFiles() {
+      const res = await fetch(webAppURL + "?getFiles=true");
+      const files = await res.json();
+      const container = document.getElementById("fileList");
+      container.innerHTML = "";
+      files.forEach(file => {
+        const div = document.createElement("div");
+        div.className = "file-item";
+        div.innerHTML = `<a href="${file.link}" target="_blank">${file.nama}</a>
+                         <span class="delete-btn" onclick="deleteFile('${file.id}')">🗑️</span>`;
+        container.appendChild(div);
+      });
+    }
+
+    async function deleteFile(id) {
+      if (!confirm("Hapus file ini?")) return;
+      const res = await fetch(webAppURL + "?id=" + id, { method: "DELETE" });
+      alert(await res.text());
+      loadFiles();
+    }
+
+    loadFiles();
+  </script>
+</body>
+</html>
