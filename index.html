@@ -1,105 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload Dokumen E-Pengawasan</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f1f5f9;
-      text-align: center;
-      padding: 40px;
-    }
-    h2 {
-      color: #1f2937;
-    }
-    .container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 10px;
-      display: inline-block;
-      box-shadow: 0px 0px 15px rgba(0,0,0,0.1);
-    }
-    select, input[type="file"], input[type="text"], button {
-      margin: 10px 0;
-      padding: 10px;
-      width: 100%;
-      max-width: 300px;
-    }
-    button {
-      background-color: #1f2937;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #374151;
-    }
-  </style>
+  <title>Upload PDF ke Apps Script</title>
 </head>
 <body>
-  <h2>E-Pengawasan Inspektorat</h2>
-  <div class="container">
-    <input type="file" id="fileInput" accept=".pdf" /><br>
-    
-    <select id="kategori">
-      <option value="">-- Pilih Kategori --</option>
+  <h2>Upload Dokumen PDF</h2>
+  <form id="uploadForm">
+    <label>Pilih file PDF:</label><br>
+    <input type="file" id="fileInput" accept="application/pdf" required><br><br>
+
+    <label>Kategori:</label><br>
+    <select id="kategori" required>
+      <option value="">-- Pilih --</option>
       <option value="Audit">Audit</option>
       <option value="Reviu">Reviu</option>
       <option value="Evaluasi">Evaluasi</option>
       <option value="Lainnya">Lainnya</option>
-    </select><br>
-    
-    <input type="text" id="tahun" placeholder="Tahun (contoh: 2024)" /><br>
-    
-    <button onclick="uploadFile()">Upload Dokumen</button>
+    </select><br><br>
+
+    <label>Tahun:</label><br>
+    <input type="text" id="tahun" placeholder="Misalnya: 2024"><br><br>
+
+    <button type="submit">Upload</button>
     <p id="status"></p>
-  </div>
+  </form>
 
   <script>
-    const webAppURL = "https://script.google.com/macros/s/AKfycbzFgprq0icKvMt0mn04rRtscph2S01RRclToHpfpClepBe85jwWeuB_y1tAFfyOvDW2/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxCIpqRm7MwJzNeczD9dUUMRLANpiE1Pbez5MoV8WCJ_EeRkYb0LZkY5x5E_XFHXKo/exec";
 
-    async function uploadFile() {
-      const fileInput = document.getElementById('fileInput');
-      const kategori = document.getElementById('kategori').value;
-      const tahun = document.getElementById('tahun').value;
-      const status = document.getElementById('status');
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const file = document.getElementById("fileInput").files[0];
+      const kategori = document.getElementById("kategori").value;
+      const tahun = document.getElementById("tahun").value;
+      const status = document.getElementById("status");
 
-      if (!fileInput.files.length || !kategori || !tahun) {
-        alert("Semua kolom wajib diisi.");
+      if (!file || !kategori) {
+        status.innerText = "Lengkapi form terlebih dahulu.";
         return;
       }
 
-      const file = fileInput.files[0];
-      const form = new FormData();
-      form.append("file", file);
-      form.append("kategori", kategori);
-      form.append("tahun", tahun);
+      const reader = new FileReader();
+      reader.onload = function() {
+        const base64Data = reader.result.split(',')[1]; // Buang header base64
 
-      status.innerText = "Mengupload...";
+        const formData = new URLSearchParams();
+        formData.append("file", base64Data);
+        formData.append("filename", file.name);
+        formData.append("kategori", kategori);
+        formData.append("tahun", tahun);
 
-      try {
-        const response = await fetch(webAppURL, {
+        fetch(scriptUrl, {
           method: "POST",
-          body: form
+          body: formData
+        })
+        .then(res => res.text())
+        .then(msg => {
+          status.innerText = msg;
+          document.getElementById("uploadForm").reset();
+        })
+        .catch(err => {
+          status.innerText = "Gagal upload: " + err.message;
         });
+      };
 
-        const result = await response.json();
-        if (result.success) {
-          alert("Upload berhasil!");
-          status.innerText = "";
-          fileInput.value = "";
-          document.getElementById('kategori').value = "";
-          document.getElementById('tahun').value = "";
-        } else {
-          alert("Gagal upload: " + result.message);
-          status.innerText = "";
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Gagal mengupload. Coba periksa koneksi atau format file.");
-        status.innerText = "";
-      }
-    }
+      reader.readAsDataURL(file); // Encode ke base64
+      status.innerText = "Mengupload...";
+    });
   </script>
 </body>
 </html>
